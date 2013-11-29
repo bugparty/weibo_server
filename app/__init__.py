@@ -1,9 +1,12 @@
 from flask import Flask
-from flask.ext.mongoengine import MongoEngine
+from werkzeug import Local, LocalProxy
+
+from database import db_session, Base
 
 app = Flask(__name__)
-app.config['MONGODB_SETTINGS'] = {'DB': "weibo"}
+l = Local()
+l.session = db_session
 
-db = MongoEngine(app)
+
 from app import views
 
