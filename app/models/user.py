@@ -8,57 +8,51 @@ from sqlalchemy.types import DateTime
 from sqlalchemy.orm import relationship
 from datetime import datetime
 
-from app.database import Base
+from database import *
 
-__all__ = ['Authority', 'Group', 'User',  'Session']
+__all__ = ['Authority', 'Group', 'User',  'Session','init_db']
 
-association_table = Table('association', Base.metadata,
+association_table = Table('associations', Base.metadata,
     Column('auth_id', Integer, ForeignKey('authority.id')),
     Column('group_id', Integer, ForeignKey('group.id'))
 )
 class Authority(Base):
+        __table_args__ = {'extend_existing': True}
         __tablename__ = 'authority'
         id = Column(Integer,primary_key=True)
         name = Column(String)
         
-        def __init__(self):
-                self.___string_name = None
-                self.___attribute = None
-                self._unnamed_Group_ = None
-                # @AssociationType server.apiapp.models.Group
+        def __init__(self, name):
+                self.name = name
                 
 class Group(Base):
+        __table_args__ = {'extend_existing': True}
         __tablename__ = 'group'
         id = Column(Integer,primary_key=True)
-        name = Column(String(10), primary_key=True)
+        name = Column(String(10),unique=True)
         auths = relationship("Authority",secondary=association_table,
                              backref="groups")
         
         users = relationship("User",backref="groups")
         
-
-
+        def __init__(self, name):
+            self.name = name
+        
 class User(Base):
         __tablename__ = 'user'
         id = Column(Integer, primary_key=True)
         username = Column(String)
         email = Column(String)
+        password = Column(String)
         group_id = Column(Integer, ForeignKey('group.id'))
         session = relationship("Session", uselist=False,
                                backref='user')
         
-        def __init__(self):
-                self.___string_username = None
-                self.___string_password = None
-                self.___string_registerDate = None
-                self.___string_sex = None
-                self.___string_email = None
-                self.___group = None
-                self._unnamed_Group_ = None
-                # @AssociationType server.apiapp.models.Group
-                # @AssociationKind Aggregation
-                self._unnamed_Session_ = None
-                # @AssociationType server.apiapp.models.Session
+        def __init__(self,  username,  email, password, group):
+                self.username = username
+                self.email = email
+                self.password = password
+                self.group = group
 
 import hmac
 from hashlib import sha1, md5
@@ -105,7 +99,8 @@ def make_secure_token(*args):
 
 class Session(Base):
         __tablename__ = 'session'
-        token = Column(String,primary_key = True)
+        id = Column(Integer, primary_key = True)
+        token = Column(String,unique=True)
         expires_in = Column(DateTime)
         user_id = Column(Integer, ForeignKey('user.id'))
         
@@ -114,3 +109,23 @@ class Session(Base):
                 self.token = make_secure_token(user,pwd)
                 # @AssociationType server.apiapp.models.User
 
+
+def init_db():
+    # import all modules here that might define models so that
+    # they will be registered properly on the metadata.  Otherwise
+    # you will have to import them first before calling init_db()
+    Base.metadata.create_all(bind=engine)
+    auth_user = Authority('user')
+    db_session.add(auth_user)
+    db_session.commit()
+    group_user = Group('user')
+    group_user.auths = [auth_user,]
+
+    db_session.add(group_user)
+    db_session.commit()
+    
+    
+    
+
+if __name__ == '__main__':
+    init_db()

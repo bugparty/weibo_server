@@ -1,7 +1,7 @@
 from flask import Flask
 from werkzeug import Local, LocalProxy
 
-from database import db_session, Base
+from models.database import db_session, Base
 
 app = Flask(__name__)
 l = Local()
